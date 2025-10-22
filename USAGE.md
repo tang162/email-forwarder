@@ -17,6 +17,16 @@ npm start
 node demo.js
 ```
 
+### 4. 使用IMAP轮询工具（独立CLI模式）
+```bash
+# 设置环境变量
+export IMAP_USER="your-email@gmail.com"
+export IMAP_PASS="your-app-password"
+
+# 运行轮询工具
+node poller.js
+```
+
 ## 主要功能
 
 ### 🎯 生成临时邮箱
@@ -36,12 +46,20 @@ node demo.js
 
 ## 工作原理
 
-本工具使用**模拟邮件服务**的方式工作：
+本工具支持两种工作模式：
 
+### 模拟模式（默认）
 1. **生成邮箱**: 创建随机的 `@tangtangs.cn` 邮箱地址
 2. **发送邮件**: 使用 Nodemailer 发送邮件（可选配置真实SMTP）
 3. **接收邮件**: 发送到 `@tangtangs.cn` 域名的邮件自动添加到内存收件箱
 4. **查看邮件**: 通过Web界面或API查看收到的邮件
+
+### IMAP轮询模式（需配置真实IMAP）
+1. **生成邮箱**: 创建随机的 `@domain` 邮箱地址
+2. **配置转发**: 需要在您的域名服务商处配置邮件转发（Catch-all）
+3. **轮询接收**: 使用IMAP连接到转发邮箱，轮询查找新邮件
+4. **重试机制**: 支持配置重试次数和间隔，确保邮件可靠接收
+5. **标记已读**: 自动标记已获取的邮件，避免重复处理
 
 ## 配置说明
 
@@ -58,6 +76,13 @@ IMAP_HOST=imap.gmail.com
 IMAP_PORT=993
 IMAP_USER=your-email@gmail.com
 IMAP_PASS=your-app-password
+
+# IMAP轮询配置（可选）
+IMAP_RETRY_TIMES=10        # 重试次数
+IMAP_RETRY_DELAY=5000      # 重试间隔（毫秒）
+
+# 邮箱域名（可选）
+EMAIL_DOMAIN=tangtangs.cn
 
 # 服务端口
 PORT=3000
