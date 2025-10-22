@@ -2,14 +2,20 @@
 
 一个基于Node.js的临时邮箱接码工具，可以生成 `***@tangtangs.cn` 格式的临时邮箱地址，并接收转发到指定邮箱的邮件。
 
+> 📖 **新用户？** 查看 [快速开始指南](QUICK_START.md) 5分钟上手！
+> 
+> 🔄 **IMAP轮询？** 查看 [IMAP轮询文档](IMAP_POLLER.md) 了解详细配置！
+
 ## 功能特点
 
 - 🎯 生成无限数量的临时邮箱地址
 - 📧 支持发送测试邮件功能
 - 📬 实时接收和查看邮件内容
+- 🔄 IMAP轮询功能，支持重试机制
 - 🚀 无需数据库，纯内存存储
 - 💻 简洁的Web界面
 - 🔄 实时刷新收件箱
+- 📟 支持命令行模式（CLI）
 
 ## 快速开始
 
@@ -58,6 +64,34 @@ npm run dev
 ### 4. 访问应用
 
 打开浏览器访问：`http://localhost:3000`
+
+## 命令行模式（IMAP轮询）
+
+除了Web界面，工具还提供了独立的命令行模式，用于测试IMAP轮询功能：
+
+```bash
+# 设置环境变量
+export IMAP_USER="your-email@gmail.com"
+export IMAP_PASS="your-app-password"
+export IMAP_HOST="imap.gmail.com"
+export IMAP_PORT="993"
+
+# 运行轮询工具
+node poller.js
+```
+
+该模式会：
+1. 生成一个随机临时邮箱地址
+2. 等待您向该地址发送测试邮件
+3. 使用IMAP轮询机制（默认10次重试，每次间隔5秒）查找邮件
+4. 显示接收到的邮件内容
+
+### 环境变量配置
+
+可选的IMAP轮询配置：
+- `IMAP_RETRY_TIMES`: 重试次数（默认10次）
+- `IMAP_RETRY_DELAY`: 重试间隔毫秒数（默认5000毫秒）
+- `EMAIL_DOMAIN`: 邮箱域名（默认tangtangs.cn）
 
 ## 使用说明
 
@@ -122,9 +156,24 @@ Body: {
 GET /api/inbox/:emailId
 ```
 
+### 轮询获取邮件（支持重试）
+```
+POST /api/inbox/:emailId/poll
+Body: {
+  "retryTimes": 10,        // 可选，默认10次
+  "retryDelay": 5000,      // 可选，默认5000毫秒
+  "markAsSeen": true       // 可选，默认true
+}
+```
+
 ### 获取所有邮箱
 ```
 GET /api/emails
+```
+
+### 获取系统状态
+```
+GET /api/status
 ```
 
 ## 注意事项
@@ -137,9 +186,10 @@ GET /api/emails
 ## 技术栈
 
 - **后端**: Node.js + Express
-- **邮件处理**: Nodemailer + IMAP
+- **邮件处理**: Nodemailer + IMAP + imap-simple
 - **前端**: Bootstrap 5 + 原生JavaScript
 - **邮件解析**: mailparser
+- **轮询机制**: 基于imap-simple的重试轮询
 
 ## 许可证
 

@@ -3,6 +3,7 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const emailService = require('./services/emailService');
 const simpleImapService = require('./services/simpleImapService');
+const imapPollerService = require('./services/imapPollerService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -92,8 +93,21 @@ app.get('/api/inbox/:emailId', async (req, res) => {
     }
     
     try {
-        // 从简化IMAP服务获取邮件
-        const messages = await simpleImapService.getEmailsByAddress(emailData.email);
+        let messages = [];
+        
+        // 如果配置了IMAP，尝试使用IMAP poller获取真实邮件
+        if (process.env.IMAP_USER && process.env.IMAP_PASS) {
+            try {
+                messages = await imapPollerService.getEmailsByAddress(emailData.email);
+            } catch (imapError) {
+                console.warn('[App] IMAP获取失败，回退到模拟服务:', imapError.message);
+                // 如果IMAP失败，回退到简化IMAP服务
+                messages = await simpleImapService.getEmailsByAddress(emailData.email);
+            }
+        } else {
+            // 未配置IMAP，使用简化IMAP服务（模拟）
+            messages = await simpleImapService.getEmailsByAddress(emailData.email);
+        }
         
         // 更新存储的邮件
         emailData.messages = messages;
@@ -107,6 +121,49 @@ app.get('/api/inbox/:emailId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: '获取邮件失败',
+            error: error.message
+        });
+    }
+});
+
+// 轮询获取邮件（支持重试）
+app.post('/api/inbox/:emailId/poll', async (req, res) => {
+    const emailId = req.params.emailId;
+    const emailData = generatedEmails.get(emailId);
+    
+    if (!emailData) {
+        return res.status(404).json({
+            success: false,
+            message: '邮箱不存在'
+        });
+    }
+    
+    // 从请求体获取配置参数
+    const { retryTimes, retryDelay, markAsSeen } = req.body;
+    
+    try {
+        const messages = await imapPollerService.fetchEmailWithRetry(emailData.email, {
+            retryTimes: retryTimes,
+            retryDelay: retryDelay,
+            markAsSeen: markAsSeen,
+            onRetry: (attempt, total, delay) => {
+                console.log(`[API Poll] 邮箱 ${emailData.email} 第 ${attempt}/${total} 次尝试`);
+            }
+        });
+        
+        // 更新存储的邮件
+        emailData.messages = messages;
+        generatedEmails.set(emailId, emailData);
+        
+        res.json({
+            success: true,
+            messages: messages,
+            polled: true
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: '轮询邮件失败',
             error: error.message
         });
     }
@@ -145,14 +202,22 @@ app.get('/api/config', (req, res) => {
 app.get('/api/status', async (req, res) => {
     try {
         const smtpStatus = await emailService.verifyConnection();
-        const imapStatus = await simpleImapService.testConnection();
+        const simpleImapStatus = await simpleImapService.testConnection();
         const emailStats = simpleImapService.getEmailStats();
+        
+        // 测试IMAP poller连接
+        let imapPollerStatus = { success: false, message: '未配置' };
+        if (process.env.IMAP_USER && process.env.IMAP_PASS) {
+            imapPollerStatus = await imapPollerService.testConnection();
+        }
         
         res.json({
             success: true,
             status: {
                 smtp: smtpStatus,
-                imap: imapStatus.success,
+                imap: simpleImapStatus.success,
+                imapPoller: imapPollerStatus.success,
+                imapPollerMessage: imapPollerStatus.message,
                 totalEmails: Object.keys(emailStats).length,
                 totalMessages: Object.values(emailStats).reduce((sum, count) => sum + count, 0),
                 emailStats: emailStats
