@@ -7,6 +7,7 @@ const { simpleParser } = require('mailparser');
  */
 class ImapPollerService {
     constructor() {
+        console.log(process.env.IMAP_USER);
         this.defaultConfig = {
             imap: {
                 user: process.env.IMAP_USER || '',
@@ -41,7 +42,7 @@ class ImapPollerService {
         const retryTimes = options.retryTimes || config.fetchRetry.times;
         const retryDelay = options.retryDelay || config.fetchRetry.delay;
         const markAsSeen = options.markAsSeen !== undefined ? options.markAsSeen : true;
-        const onRetry = options.onRetry || (() => {});
+        const onRetry = options.onRetry || (() => { });
 
         // 检查IMAP配置
         if (!config.imap.user || !config.imap.password) {
@@ -62,16 +63,18 @@ class ImapPollerService {
                 };
 
                 const messages = await connection.search(searchCriteria, fetchOptions);
+                console.log(messages);
+
 
                 if (messages.length > 0) {
                     // 找到邮件了！解析所有邮件
                     const parsedMessages = [];
-                    
+
                     for (const message of messages) {
                         const all = message.parts.find(part => part.which === '');
                         const rawEmail = all.body;
                         const parsedEmail = await simpleParser(rawEmail);
-                        
+
                         parsedMessages.push({
                             id: message.attributes.uid,
                             uid: message.attributes.uid,
@@ -92,10 +95,10 @@ class ImapPollerService {
 
                 // 未找到邮件，关闭连接，准备下一次重试
                 connection.end();
-                
+
                 // 调用重试回调
                 onRetry(i + 1, retryTimes, retryDelay);
-                
+
                 // 如果不是最后一次尝试，等待后重试
                 if (i < retryTimes - 1) {
                     await this.delay(retryDelay);
@@ -103,12 +106,12 @@ class ImapPollerService {
 
             } catch (error) {
                 console.error(`[ImapPoller] 连接或获取邮件时出错 (尝试 ${i + 1}/${retryTimes}):`, error.message);
-                
+
                 // 如果是最后一次尝试，抛出错误
                 if (i === retryTimes - 1) {
                     throw new Error(`IMAP获取邮件失败: ${error.message}`);
                 }
-                
+
                 // 否则等待后重试
                 await this.delay(retryDelay);
             }
