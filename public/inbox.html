@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收件箱 - 无限邮箱接码工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .message-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.2s;
+        }
+        .message-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .email-content {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="mb-0">
+                        <i class="bi bi-inbox"></i> 收件箱
+                    </h1>
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> 返回首页
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 邮箱信息 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">邮箱地址</h5>
+                                <div class="input-group" style="max-width: 500px;">
+                                    <input type="text" id="emailAddress" class="form-control" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyEmail()">
+                                        <i class="bi bi-clipboard"></i> 复制
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-primary" onclick="refreshInbox()">
+                                    <i class="bi bi-arrow-clockwise"></i> 刷新
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 验证码验证 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card" id="otpCard">
+                    <div class="card-body">
+                        <h5 class="mb-3"><i class="bi bi-shield-check"></i> 验证邮箱访问权限</h5>
+                        <p class="text-muted">请输入在首页获取的验证码，验证码有效期为 5 分钟。</p>
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-4">
+                                <input type="text" id="otpInput" class="form-control" placeholder="输入6位验证码">
+                            </div>
+                            <div class="col-md-8 d-flex gap-2">
+                                <button class="btn btn-success" id="verifyOtpBtn" type="button">
+                                    <i class="bi bi-check-circle"></i> 验证验证码
+                                </button>
+                                <button class="btn btn-outline-secondary" id="requestOtpBtn" type="button">
+                                    <i class="bi bi-key"></i> 获取/刷新验证码
+                                </button>
+                            </div>
+                        </div>
+                        <div id="otpStatus" class="text-muted mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 邮件列表 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card" id="inboxCard" style="display: none;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-envelope"></i> 邮件列表</h5>
+                        <span id="messageCount" class="badge bg-primary">0 封邮件</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="messageList">
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-shield-lock" style="font-size: 3rem;"></i>
+                                <p class="mt-2">请先完成验证码验证以查看邮件。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 邮件详情模态框 -->
+        <div class="modal fade" id="emailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">邮件详情</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="emailDetails"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="inbox.js"></script>
+</body>
+</html>
