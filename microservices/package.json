@@ -1,0 +1,6 @@
+{
+  "name": "email-catcher-microservices",
+  "version": "1.0.0",
+  "description": "Microservices for email catcher",
+  "private": true
+}

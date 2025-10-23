@@ -191,6 +191,80 @@ GET /api/status
 - **邮件解析**: mailparser
 - **轮询机制**: 基于imap-simple的重试轮询
 
+---
+
+## 🚀 新版本：微服务架构 + Vue 3
+
+本项目现已升级支持**微服务架构**和**Vue 3前端**！
+
+### ✨ 新特性
+
+- 🏗️ **微服务架构**: 6个独立微服务，易于扩展
+- 🎨 **Vue 3前端**: 现代化SPA，组件化开发
+- 🐳 **Docker支持**: 完整的容器化方案
+- 📦 **开发体验**: 热模块替换，快速开发
+- 🔧 **多种部署**: 支持本地、Docker、K8s等
+
+### 📚 快速开始
+
+#### 开发模式
+```bash
+# 安装依赖
+npm install
+cd frontend && npm install && cd ..
+
+# 终端1: 启动微服务
+npm run microservices:dev
+
+# 终端2: 启动前端
+npm run frontend:dev
+
+# 访问: http://localhost:5173
+```
+
+#### 生产模式
+```bash
+# 构建前端
+npm run frontend:build
+
+# 启动微服务
+npm run microservices
+
+# 访问: http://localhost:3000
+```
+
+#### Docker部署
+```bash
+npm run frontend:build
+docker-compose up -d
+```
+
+### 📖 完整文档
+
+- **[快速开始指南](./QUICKSTART.md)** - 5分钟上手
+- **[微服务版README](./README-MICROSERVICES.md)** - 完整功能说明
+- **[架构详解](./MICROSERVICES.md)** - 微服务架构文档
+- **[部署指南](./DEPLOYMENT.md)** - 多种部署方式
+- **[项目总结](./PROJECT_SUMMARY.md)** - 技术实现总结
+
+### 🔍 验证设置
+
+```bash
+npm run test:setup
+```
+
+### 📊 架构对比
+
+| 特性 | 原版 | 微服务版 |
+|------|------|----------|
+| 架构 | 单体应用 | 微服务 |
+| 前端 | 原生JS | Vue 3 |
+| 部署 | 单进程 | 多进程/容器 |
+| 扩展性 | 垂直扩展 | 水平扩展 |
+| 开发体验 | 基础 | 热重载、组件化 |
+
+---
+
 ## 许可证
 
 MIT License

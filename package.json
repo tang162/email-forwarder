@@ -1,11 +1,19 @@
 {
   "name": "infinite-email-catcher",
-  "version": "1.0.0",
-  "description": "无限邮箱接码工具",
+  "version": "2.0.0",
+  "description": "无限邮箱接码工具 - 微服务架构 + Vue前端",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "microservices": "node start-microservices.js",
+    "microservices:dev": "nodemon --watch microservices --watch shared start-microservices.js",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "test:setup": "node test-setup.js",
     "poller": "node poller.js",
     "poller:config": "node poller-config.js",
     "test:poller": "node test-poller.js"

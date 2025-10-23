@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  email-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.microservice
+    command: node microservices/email-generator/index.js
+    ports:
+      - "3001:3001"
+    environment:
+      - EMAIL_GENERATOR_PORT=3001
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  email-sender:
+    build:
+      context: .
+      dockerfile: Dockerfile.microservice
+    command: node microservices/email-sender/index.js
+    ports:
+      - "3002:3002"
+    environment:
+      - EMAIL_SENDER_PORT=3002
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  email-receiver:
+    build:
+      context: .
+      dockerfile: Dockerfile.microservice
+    command: node microservices/email-receiver/index.js
+    ports:
+      - "3003:3003"
+    environment:
+      - EMAIL_RECEIVER_PORT=3003
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  config-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.microservice
+    command: node microservices/config-service/index.js
+    ports:
+      - "3004:3004"
+    environment:
+      - CONFIG_SERVICE_PORT=3004
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.microservice
+    command: node microservices/auth-service/index.js
+    ports:
+      - "3005:3005"
+    environment:
+      - AUTH_SERVICE_PORT=3005
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    command: node microservices/api-gateway/index.js
+    ports:
+      - "3000:3000"
+    environment:
+      - API_GATEWAY_PORT=3000
+      - EMAIL_GENERATOR_HOST=email-generator
+      - EMAIL_SENDER_HOST=email-sender
+      - EMAIL_RECEIVER_HOST=email-receiver
+      - CONFIG_SERVICE_HOST=config-service
+      - AUTH_SERVICE_HOST=auth-service
+    env_file:
+      - .env
+    depends_on:
+      - email-generator
+      - email-sender
+      - email-receiver
+      - config-service
+      - auth-service
+    restart: unless-stopped
+
+networks:
+  default:
+    name: email-catcher-network
