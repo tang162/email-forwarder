@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Email</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+<body>
+    <main class="container">
+        <h1>Your Email Address</h1>
+        <p>Loading...</p>
+        <a href="#" id="view-email-link" style="display: none;">View Email</a>
+    </main>
+    <script>
+        fetch('/get-email-address')
+            .then(response => response.json())
+            .then(data => {
+                const emailAddress = data.email_address;
+                document.querySelector('p').textContent = emailAddress;
+                const viewEmailLink = document.getElementById('view-email-link');
+                viewEmailLink.href = `/view-email?email_address=${encodeURIComponent(emailAddress)}`;
+                viewEmailLink.style.display = 'block';
+            });
+    </script>
+</body>
+</html>

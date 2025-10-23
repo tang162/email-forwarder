@@ -11,7 +11,14 @@ const PORT = process.env.PORT || 3000;
 // 中间件
 app.use(cors());
 app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+app.get('/', (req, res) => {
+    res.redirect('/imap-config.html');
+});
+
 
 // 存储生成的邮箱地址（内存存储）
 const generatedEmails = new Map();
@@ -238,6 +245,61 @@ app.get('/api/emails', (req, res) => {
     });
 });
 
+app.get('/get-email-address', (req, res) => {
+    const emailId = uuidv4().replace(/-/g, '').substring(0, 10);
+    const domain = getEffectiveDomain();
+    const emailAddress = `${emailId}@${domain}`;
+
+    // 存储邮箱信息
+    const emailData = {
+        email: emailAddress,
+        created: new Date(),
+        messages: []
+    };
+    generatedEmails.set(emailId, emailData);
+
+    res.json({
+        email_address: emailAddress
+    });
+});
+
+app.get('/latest-email', async (req, res) => {
+    const emailAddress = req.query.email_address;
+    if (!emailAddress) {
+        return res.status(400).json({ error: 'Email address is required' });
+    }
+
+    try {
+        let messages = [];
+        const hasImapConfig = manualImapConfig || (process.env.IMAP_USER && process.env.IMAP_PASS);
+        
+        if (hasImapConfig) {
+            try {
+                const config = getEffectiveImapSettings();
+                messages = await imapPollerService.getEmails(emailAddress, {
+                    config,
+                    markAsSeen: true
+                });
+            } catch (imapError) {
+                console.warn('[App] IMAP fetch failed:', imapError.message);
+            }
+        }
+
+        if (messages.length > 0) {
+            const latestMessage = messages[messages.length - 1];
+            res.json(latestMessage);
+        } else {
+            res.json({ error: 'No emails found' });
+        }
+    } catch (error) {
+        res.status(500).json({
+            error: 'Failed to fetch emails',
+            details: error.message
+        });
+    }
+});
+
+
 // 配置页面
 app.get('/api/config', (req, res) => {
     const imapConfig = manualImapConfig || {
@@ -279,52 +341,32 @@ app.get('/api/config', (req, res) => {
 });
 
 // 保存手动IMAP配置
-app.post('/api/config', (req, res) => {
-    const { imap, polling, domain } = req.body;
+app.post('/config', (req, res) => {
+    const { imap_server, imap_port, imap_user, imap_password, imap_polling_interval, email_domain } = req.body;
 
-    if (!imap || !imap.host || !imap.port || !imap.user) {
-        return res.status(400).json({
-            success: false,
-            message: '请提供完整的IMAP配置信息'
-        });
+    if (!imap_server || !imap_port || !imap_user || !imap_password) {
+        return res.status(400).send('Missing required IMAP configuration');
     }
 
-    const newImapConfig = {
-        host: imap.host,
-        port: parseInt(imap.port, 10),
-        user: imap.user
+    manualImapConfig = {
+        host: imap_server,
+        port: parseInt(imap_port, 10),
+        user: imap_user,
+        password: imap_password
     };
 
-    if (imap.password) {
-        newImapConfig.password = imap.password;
-    } else if (manualImapConfig?.password) {
-        newImapConfig.password = manualImapConfig.password;
-    } else if (process.env.IMAP_PASS) {
-        newImapConfig.password = process.env.IMAP_PASS;
-    } else {
-        return res.status(400).json({
-            success: false,
-            message: '请提供IMAP密码'
-        });
-    }
-
-    manualImapConfig = newImapConfig;
-
-    if (polling) {
+    if (imap_polling_interval) {
         manualPollingConfig = {
-            times: parseInt(polling.times, 10) || 10,
-            delay: parseInt(polling.delay, 10) || 5000
+            times: 10, // Default value
+            delay: parseInt(imap_polling_interval, 10) * 1000
         };
     }
 
-    if (domain) {
-        manualEmailDomain = domain;
+    if (email_domain) {
+        manualEmailDomain = email_domain;
     }
 
-    res.json({
-        success: true,
-        message: 'IMAP配置已保存'
-    });
+    res.send('Configuration saved successfully');
 });
 
 // 获取当前OTP信息

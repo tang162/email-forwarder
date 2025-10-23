@@ -31,5 +31,13 @@
     "nodejs"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tang162/email-forwarder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tang162/email-forwarder/issues"
+  },
+  "homepage": "https://github.com/tang162/email-forwarder#readme"
 }

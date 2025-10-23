@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMAP Configuration</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+<body>
+    <main class="container">
+        <h1>IMAP Configuration</h1>
+        <form action="/config" method="post">
+            <label for="imap-server">IMAP Server</label>
+            <input type="text" id="imap-server" name="imap_server" required>
+
+            <label for="imap-port">IMAP Port</label>
+            <input type="number" id="imap-port" name="imap_port" required>
+
+            <label for="imap-user">IMAP User</label>
+            <input type="text" id="imap-user" name="imap_user" required>
+
+            <label for="imap-password">IMAP Password</label>
+            <input type="password" id="imap-password" name="imap_password" required>
+
+            <h2>Optional Settings</h2>
+
+            <label for="imap-polling-interval">IMAP Polling Interval (seconds)</label>
+            <input type="number" id="imap-polling-interval" name="imap_polling_interval">
+
+            <label for="email-domain">Email Domain</label>
+            <input type="text" id="email-domain" name="email_domain">
+
+            <button type="submit">Save Configuration</button>
+        </form>
+    </main>
+</body>
+</html>

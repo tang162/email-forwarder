@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Email</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+<body>
+    <main class="container">
+        <h1>Email Content</h1>
+        <div id="email-content">
+            <p>Loading...</p>
+        </div>
+    </main>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailAddress = urlParams.get('email_address');
+        fetch(`/latest-email?email_address=${encodeURIComponent(emailAddress)}`)
+            .then(response => response.json())
+            .then(data => {
+                const emailContent = document.getElementById('email-content');
+                if (data.error) {
+                    emailContent.innerHTML = `<p>${data.error}</p>`;
+                } else {
+                    emailContent.innerHTML = `
+                        <h2>${data.subject}</h2>
+                        <p><strong>From:</strong> ${data.from}</p>
+                        <p><strong>To:</strong> ${data.to}</p>
+                        <p><strong>Date:</strong> ${data.date}</p>
+                        <hr>
+                        <div>${data.html || data.text}</div>
+                    `;
+                }
+            });
+    </script>
+</body>
+</html>
