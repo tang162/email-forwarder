@@ -63,14 +63,15 @@ class ImapPollerService {
     /**
      * 获取满足条件的所有邮件（自动兼容邮箱类型）
      */
-    async getEmails(email) {
+    async getEmails(email, options = {}) {
         try {
-            const searchCriteria = [['TO', email], ['UNSEEN']];
-            const options = {
-                markAsSeen: true,
-                targetEmail: email  // 传递 targetEmail 参数
+            const searchCriteria = options.searchCriteria || [['TO', email], ['UNSEEN']];
+            const fetchOptions = {
+                markAsSeen: options.markAsSeen !== undefined ? options.markAsSeen : true,
+                targetEmail: options.targetEmail || email,
+                config: options.config
             }
-            const emails = await this._fetchAndParseEmails(searchCriteria, options)
+            const emails = await this._fetchAndParseEmails(searchCriteria, fetchOptions)
             return emails
         } catch (error) {
             console.error('[ImapPoller] 获取邮件失败:', error.message)
