@@ -85,6 +85,7 @@ app.get('/api/inbox/:emailId', async (req, res) => {
     const emailId = req.params.emailId;
     const emailData = generatedEmails.get(emailId);
 
+
     if (!emailData) {
         return res.status(404).json({
             success: false,
@@ -98,7 +99,10 @@ app.get('/api/inbox/:emailId', async (req, res) => {
         // 如果配置了IMAP，尝试使用IMAP poller获取真实邮件
         if (process.env.IMAP_USER && process.env.IMAP_PASS) {
             try {
-                messages = await imapPollerService.getEmailsByAddress(emailData.email);
+                // 修复：传递正确的搜索条件数组格式，查找未读邮件并标记为已读
+
+                messages = await imapPollerService.getEmails(emailData.email);
+
             } catch (imapError) {
                 console.warn('[App] IMAP获取失败，回退到模拟服务:', imapError.message);
                 // 如果IMAP失败，回退到简化IMAP服务
@@ -119,49 +123,6 @@ app.get('/api/inbox/:emailId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: '获取邮件失败',
-            error: error.message
-        });
-    }
-});
-
-// 轮询获取邮件（支持重试）
-app.post('/api/inbox/:emailId/poll', async (req, res) => {
-    const emailId = req.params.emailId;
-    const emailData = generatedEmails.get(emailId);
-
-    if (!emailData) {
-        return res.status(404).json({
-            success: false,
-            message: '邮箱不存在'
-        });
-    }
-
-    // 从请求体获取配置参数
-    const { retryTimes, retryDelay, markAsSeen } = req.body;
-
-    try {
-        const messages = await imapPollerService.fetchEmailWithRetry(emailData.email, {
-            retryTimes: retryTimes,
-            retryDelay: retryDelay,
-            markAsSeen: markAsSeen,
-            onRetry: (attempt, total, delay) => {
-                console.log(`[API Poll] 邮箱 ${emailData.email} 第 ${attempt}/${total} 次尝试`);
-            }
-        });
-
-        // 更新存储的邮件
-        emailData.messages = messages;
-        generatedEmails.set(emailId, emailData);
-
-        res.json({
-            success: true,
-            messages: messages,
-            polled: true
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: '轮询邮件失败',
             error: error.message
         });
     }

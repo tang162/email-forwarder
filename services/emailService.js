@@ -52,6 +52,8 @@ class EmailService {
                 response: info.response
             };
         } catch (error) {
+            console.log(error);
+
             // 即使SMTP发送失败，也可以将邮件添加到模拟收件箱进行演示
             if (toEmail.includes('@tangtangs.cn')) {
 
