@@ -1,8 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const emailService = require('./services/emailService');
-const simpleImapService = require('./services/simpleImapService');
 const imapPollerService = require('./services/imapPollerService');
 
 const app = express();
@@ -20,14 +20,14 @@ const generatedEmails = new Map();
 app.post('/api/generate-email', (req, res) => {
     const emailId = uuidv4().replace(/-/g, '').substring(0, 10);
     const emailAddress = `${emailId}@tangtangs.cn`;
-    
+
     // 存储邮箱信息
     generatedEmails.set(emailId, {
         email: emailAddress,
         created: new Date(),
         messages: []
     });
-    
+
     res.json({
         success: true,
         emailId: emailId,
@@ -39,14 +39,14 @@ app.post('/api/generate-email', (req, res) => {
 app.get('/api/email/:emailId', (req, res) => {
     const emailId = req.params.emailId;
     const emailData = generatedEmails.get(emailId);
-    
+
     if (!emailData) {
         return res.status(404).json({
             success: false,
             message: '邮箱不存在'
         });
     }
-    
+
     res.json({
         success: true,
         data: emailData
@@ -56,14 +56,14 @@ app.get('/api/email/:emailId', (req, res) => {
 // 测试发送邮件
 app.post('/api/send-test-email', async (req, res) => {
     const { toEmail, subject, content } = req.body;
-    
+
     if (!toEmail || !subject || !content) {
         return res.status(400).json({
             success: false,
             message: '缺少必要参数'
         });
     }
-    
+
     try {
         const result = await emailService.sendTestEmail(toEmail, subject, content);
         res.json({
@@ -84,35 +84,37 @@ app.post('/api/send-test-email', async (req, res) => {
 app.get('/api/inbox/:emailId', async (req, res) => {
     const emailId = req.params.emailId;
     const emailData = generatedEmails.get(emailId);
-    
+
+
     if (!emailData) {
         return res.status(404).json({
             success: false,
             message: '邮箱不存在'
         });
     }
-    
+
     try {
         let messages = [];
-        
+
         // 如果配置了IMAP，尝试使用IMAP poller获取真实邮件
         if (process.env.IMAP_USER && process.env.IMAP_PASS) {
             try {
-                messages = await imapPollerService.getEmailsByAddress(emailData.email);
+                // 修复：传递正确的搜索条件数组格式，查找未读邮件并标记为已读
+
+                messages = await imapPollerService.getEmails(emailData.email);
+
             } catch (imapError) {
                 console.warn('[App] IMAP获取失败，回退到模拟服务:', imapError.message);
                 // 如果IMAP失败，回退到简化IMAP服务
-                messages = await simpleImapService.getEmailsByAddress(emailData.email);
             }
         } else {
             // 未配置IMAP，使用简化IMAP服务（模拟）
-            messages = await simpleImapService.getEmailsByAddress(emailData.email);
         }
-        
+
         // 更新存储的邮件
         emailData.messages = messages;
         generatedEmails.set(emailId, emailData);
-        
+
         res.json({
             success: true,
             messages: messages
@@ -126,56 +128,13 @@ app.get('/api/inbox/:emailId', async (req, res) => {
     }
 });
 
-// 轮询获取邮件（支持重试）
-app.post('/api/inbox/:emailId/poll', async (req, res) => {
-    const emailId = req.params.emailId;
-    const emailData = generatedEmails.get(emailId);
-    
-    if (!emailData) {
-        return res.status(404).json({
-            success: false,
-            message: '邮箱不存在'
-        });
-    }
-    
-    // 从请求体获取配置参数
-    const { retryTimes, retryDelay, markAsSeen } = req.body;
-    
-    try {
-        const messages = await imapPollerService.fetchEmailWithRetry(emailData.email, {
-            retryTimes: retryTimes,
-            retryDelay: retryDelay,
-            markAsSeen: markAsSeen,
-            onRetry: (attempt, total, delay) => {
-                console.log(`[API Poll] 邮箱 ${emailData.email} 第 ${attempt}/${total} 次尝试`);
-            }
-        });
-        
-        // 更新存储的邮件
-        emailData.messages = messages;
-        generatedEmails.set(emailId, emailData);
-        
-        res.json({
-            success: true,
-            messages: messages,
-            polled: true
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: '轮询邮件失败',
-            error: error.message
-        });
-    }
-});
-
 // 获取所有生成的邮箱
 app.get('/api/emails', (req, res) => {
     const emails = Array.from(generatedEmails.entries()).map(([id, data]) => ({
         id: id,
         ...data
     }));
-    
+
     res.json({
         success: true,
         emails: emails
@@ -198,39 +157,7 @@ app.get('/api/config', (req, res) => {
     });
 });
 
-// 获取系统状态
-app.get('/api/status', async (req, res) => {
-    try {
-        const smtpStatus = await emailService.verifyConnection();
-        const simpleImapStatus = await simpleImapService.testConnection();
-        const emailStats = simpleImapService.getEmailStats();
-        
-        // 测试IMAP poller连接
-        let imapPollerStatus = { success: false, message: '未配置' };
-        if (process.env.IMAP_USER && process.env.IMAP_PASS) {
-            imapPollerStatus = await imapPollerService.testConnection();
-        }
-        
-        res.json({
-            success: true,
-            status: {
-                smtp: smtpStatus,
-                imap: simpleImapStatus.success,
-                imapPoller: imapPollerStatus.success,
-                imapPollerMessage: imapPollerStatus.message,
-                totalEmails: Object.keys(emailStats).length,
-                totalMessages: Object.values(emailStats).reduce((sum, count) => sum + count, 0),
-                emailStats: emailStats
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: '获取系统状态失败',
-            error: error.message
-        });
-    }
-});
+
 
 app.listen(PORT, () => {
     console.log(`无限邮箱接码工具启动成功，端口: ${PORT}`);

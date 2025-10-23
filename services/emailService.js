@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const simpleImapService = require('./simpleImapService');
 
 class EmailService {
     constructor() {
@@ -46,37 +45,24 @@ class EmailService {
 
         try {
             const info = await this.transporter.sendMail(mailOptions);
-            
-            // 将发送的邮件自动添加到模拟收件箱
-            if (toEmail.includes('@tangtangs.cn')) {
-                simpleImapService.addEmailToInbox(
-                    toEmail, 
-                    mailOptions.from, 
-                    subject, 
-                    content
-                );
-            }
-            
+
+
             return {
                 messageId: info.messageId,
                 response: info.response
             };
         } catch (error) {
+            console.log(error);
+
             // 即使SMTP发送失败，也可以将邮件添加到模拟收件箱进行演示
             if (toEmail.includes('@tangtangs.cn')) {
-                simpleImapService.addEmailToInbox(
-                    toEmail, 
-                    mailOptions.from, 
-                    subject, 
-                    content
-                );
-                
+
                 return {
                     messageId: 'demo-' + Date.now(),
                     response: '邮件已添加到模拟收件箱（SMTP服务未配置）'
                 };
             }
-            
+
             throw new Error(`发送邮件失败: ${error.message}`);
         }
     }
